@@ -1,3 +1,4 @@
+require 'reve/version'
 #--
 # Code copyright Lisa Seelye, 2007-2010. www.crudvision.com
 # Contributors at: http://github.com/lisa/reve/contributors

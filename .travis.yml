@@ -1,6 +1,9 @@
 language: ruby
 rvm:
   - "1.9.2"
+  - "1.9.3"
+  - "2.1.5"
+  - "2.2.0"
 before_script: 
   - echo "Remember your flashlight! Watch out for the lurking Grue!"
 script: 

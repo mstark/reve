@@ -6,12 +6,13 @@ require 'reve/version'
 # see the LICENSE file distributed with this package.
 #++
 
-begin
-  require 'hpricot'
-rescue LoadError
-  require 'rubygems'
-  require 'hpricot'
-end
+# begin
+#   require 'hpricot'
+# rescue LoadError
+#   require 'rubygems'
+#   require 'hpricot'
+# end
+require 'nokogiri'
 require 'net/https'
 require 'uri'
 require 'cgi'
@@ -156,7 +157,6 @@ module Reve
       @cached_until = nil
       @last_hash = nil
       @last_xml  = nil
-      # @reve_version = File.read(File.join(File.dirname(__FILE__),'../','VERSION')).chomp
       @reve_version = Reve::VERSION
       @http_user_agent = "Reve v#{@reve_version}; http://github.com/lisa/reve"
     end
@@ -174,12 +174,13 @@ module Reve
     # See Also: Reve::Classes::ServerStatus
     def server_status(opts = {})
       args = postfields(opts)
-      h = compute_hash(  opts.merge(:url => @@server_status_url) )
+      h = compute_hash(opts.merge(:url => @@server_status_url))
       return h if h
-      xml = process_query(nil,opts[:url] || @@server_status_url,true,opts)
+      xml = process_query(nil, opts[:url] || @@server_status_url, true, opts)
+
       Reve::Classes::ServerStatus.new(
-        xml.search("/eveapi/result/serverOpen/").first.to_s,
-        xml.search("/eveapi/result/onlinePlayers/").first.to_s
+        xml.search("eveapi/result/serverOpen").text,
+        xml.search("eveapi/result/onlinePlayers").text
       )
     end
     
@@ -222,10 +223,10 @@ module Reve
           ret << Reve::Classes::Character.new(elem)
         end
         ret
-      end      
-    
+      end
+
     alias_method :character_name, :ids_to_names
-    
+
     # Return a list of Alliances and member Corporations from
     # http://api.eve-online.com/eve/AllianceList.xml.aspx
     # Use the corporation_sheet method to get information for each member
@@ -238,7 +239,7 @@ module Reve
       return h if h
       xml = process_query(nil,opts[:url] || @@alliances_url,true,args)
       alliances = []
-      xml.search("/eveapi/result/rowset[@name='alliances']/row").each do |alliance|
+      xml.search("eveapi/result/rowset[@name='alliances']/row").each do |alliance|
         alliance_obj = Reve::Classes::Alliance.new(alliance)
         alliance.search("rowset[@name='memberCorporations']/row").each do |corporation|
           alliance_obj.member_corporations << Reve::Classes::Corporation.new(corporation)
@@ -343,10 +344,10 @@ module Reve
       return h if h
       xml = process_query(nil, opts[:url] || @@corporate_contacts_url,true,args)
       contacts = []
-      xml.search("/eveapi/result/rowset[@name='corporateContactList']/row").each do |corporate|
+      xml.search("eveapi/result/rowset[@name='corporateContactList']/row").each do |corporate|
         contacts << Reve::Classes::CorporateContact.new(corporate)
       end
-      xml.search("/eveapi/result/rowset[@name='allianceContactList']/row").each do |alliance|
+      xml.search("eveapi/result/rowset[@name='allianceContactList']/row").each do |alliance|
         contacts << Reve::Classes::AllianceContact.new(alliance)
       end
       contacts
@@ -361,6 +362,7 @@ module Reve
       return h if h
       doc = process_query(nil,opts[:url] || @@skill_tree_url,true)
       skills = []
+
       (doc/'rowset[@name=skills]/row').each do |skill|
         name = skill['typeName']
         type_id = skill['typeID']
@@ -368,22 +370,22 @@ module Reve
         rank = (skill/:rank).inner_html
         desc = (skill/:description).inner_html
         required_skills = []
-        reqs = (skill/'rowset@name=[requiredskills]/row')
+        reqs = (skill/'rowset[@name=requiredskills]/row')
         reqs.each do |required|
-          next if required.kind_of? Hpricot::Text # why is this needed? Why is this returned? How can I only get stuff with typeid and skilllevel?
+          next if required.kind_of? Nokogiri::Text # why is this needed? Why is this returned? How can I only get stuff with typeid and skilllevel?
           required_skills << Reve::Classes::SkillRequirement.new(required) if required['typeID'] && required['skillLevel']
         end
         required_attribs = []
         (skill/'requiredAttributes').each do |req|
-          pri = doc.at(req.xpath + "/primaryAttribute")
-          sec = doc.at(req.xpath + "/secondaryAttribute")
+          pri = req.at("primaryAttribute")
+          sec = req.at("secondaryAttribute")
           required_attribs << Reve::Classes::PrimaryAttribute.new(pri.inner_html)
           required_attribs << Reve::Classes::SecondaryAttribute.new(sec.inner_html)
         end
         bonuses = []
-        res = (skill/'rowset@name=[skillBonusCollection]/row')
+        res = (skill/'rowset[@name=skillBonusCollection]/row')
         res.each do |bonus|
-          next if bonus.kind_of? Hpricot::Text
+          next if bonus.text?
           bonuses << Reve::Classes::SkillBonus.new(bonus) if bonus['bonusType'] && bonus['bonusValue']
         end
         skills << Reve::Classes::SkillTree.new(name,type_id,group_id,desc,rank,required_attribs,required_skills,bonuses)
@@ -521,8 +523,8 @@ module Reve
       return h if h
       process_query(Reve::Classes::CorporateMedal, opts[:url] || @@corporate_medals_url,false,args)
     end
-    
-    
+
+
     # Gets the medals the Corporation has given out. Returns a list of
     # Reve::Classes::CorporateMemberMedal
     # Expects:
@@ -534,8 +536,8 @@ module Reve
       return h if h
       process_query(Reve::Classes::CorporateMemberMedal, opts[:url] || @@corp_member_medals_url,false,args)
     end
-    
-    
+
+
     # Gets the list of Medals awarded to a Character. Returns a
     # Reve::Classes::CharacterMedals object.
     def character_medals(opts = { :characterid => nil })
@@ -543,10 +545,10 @@ module Reve
       h = compute_hash(args.merge(:url => @@character_medals_url))
       return h if h
       xml = process_query(nil,opts[:url] || @@character_medals_url,true,args)
-      current = xml.search("/eveapi/result/rowset[@name=currentCorporation]/row").inject([]) do |cur,elem|
+      current = xml.search("eveapi/result/rowset[@name=currentCorporation]/row").inject([]) do |cur,elem|
         cur << Reve::Classes::CharacterMedal.new(elem)
       end
-      other = xml.search("/eveapi/result/rowset[@name=otherCorporations]/row").inject([]) do |cur,elem|
+      other = xml.search("eveapi/result/rowset[@name=otherCorporations]/row").inject([]) do |cur,elem|
         cur << Reve::Classes::CharacterMedal.new(elem)
       end
       Reve::Classes::CharacterMedals.new(current,other)
@@ -565,7 +567,7 @@ module Reve
       [ :factionID, :factionName, :enlisted, :currentRank, :highestRank, 
         :killsYesterday, :killsLastWeek, :killsTotal, :victoryPointsYesterday,
         :victoryPointsLastWeek, :victoryPointsTotal ].each do |elem|
-          elems[elem.to_s] = xml.search("/eveapi/result/" + elem.to_s).first.inner_html
+          elems[elem.to_s] = xml.search("eveapi/result/" + elem.to_s).first.inner_html
         end
       Reve::Classes::PersonalFactionWarParticpant.new(elems)
     end
@@ -583,7 +585,7 @@ module Reve
       [ :factionID, :factionName, :enlisted, :pilots,
         :killsYesterday, :killsLastWeek, :killsTotal, :victoryPointsYesterday,
         :victoryPointsLastWeek, :victoryPointsTotal ].each do |elem|
-          elems[elem.to_s] = xml.search("/eveapi/result/" + elem.to_s).first.inner_html
+          elems[elem.to_s] = xml.search("eveapi/result/" + elem.to_s).first.inner_html
         end
       Reve::Classes::CorporateFactionWarParticpant.new(elems)
     end
@@ -596,16 +598,16 @@ module Reve
       h = compute_hash(args.merge(:url => @@general_faction_war_stats_url))
       return h if h
       xml = process_query(nil,opts[:url] || @@general_faction_war_stats_url,true,args)
-      participants = xml.search("/eveapi/result/rowset[@name='factions']/row").collect do |faction|
+      participants = xml.search("eveapi/result/rowset[@name='factions']/row").collect do |faction|
         Reve::Classes::FactionwideFactionWarParticpant.new(faction)
       end
-      wars = xml.search("/eveapi/result/rowset[@name='factionWars']/row").collect do |faction_war|
+      wars = xml.search("eveapi/result/rowset[@name='factionWars']/row").collect do |faction_war|
         Reve::Classes::FactionWar.new(faction_war)
       end
       totals = {}
       [ :killsYesterday, :killsLastWeek, :killsTotal, :victoryPointsYesterday,
         :victoryPointsLastWeek, :victoryPointsTotal ].each do |elem|
-        totals[elem.to_s] = xml.search("/eveapi/result/totals/" + elem.to_s).first.inner_html
+        totals[elem.to_s] = xml.search("eveapi/result/totals/" + elem.to_s).first.inner_html
       end
       Reve::Classes::EveFactionWarStat.new(totals, wars, participants)
     end
@@ -656,16 +658,16 @@ module Reve
       h = compute_hash(args.merge(:url => @@personal_assets_url))
       return h if h
       xml = process_query(nil,opts[:url] || @@personal_assets_url,true,args)
-      self.recur_through_assets(xml.search("/eveapi/result/rowset[@name='assets']/row"))
+      self.recur_through_assets(xml.search("eveapi/result/rowset[@name='assets']/row"))
     end
-    
+
     # Get a list of the Corporate Assets. Pass the characterid of the Corporate member See also assets_list method
     def corporate_assets_list(opts = { :characterid => nil})
       args = postfields(opts)
       h = compute_hash(args.merge(:url => @@corporate_assets_url))
       return h if h
-      xml = process_query(nil,opts[:url] || @@corporate_assets_url,true,args)
-      self.recur_through_assets(xml.search("/eveapi/result/rowset[@name='assets']/row"))
+      xml = process_query(nil,opts[:url] || @@corporate_assets_url, true, args)
+      self.recur_through_assets(xml.search("eveapi/result/rowset[@name='assets']/row"))
     end
 
     # Returns a Character list for the associated key from
@@ -732,33 +734,33 @@ module Reve
       args = postfields(opts)
       h = compute_hash(args.merge(:url => @@starbasedetail_url))
       return h if h
-      xml = process_query(Reve::Classes::StarbaseDetails,opts[:url] || @@starbasedetail_url, true, args)
-      
-      state = xml.search("/eveapi/result/state").inner_text
-      state_timestamp = xml.search("/eveapi/result/stateTimestamp").inner_text
-      online_timestamp = xml.search("/eveapi/result/onlineTimestamp").inner_text
-      
+      xml = process_query(Reve::Classes::StarbaseDetails, opts[:url] || @@starbasedetail_url, true, args)
+
+      state = xml.search("eveapi/result/state").inner_text
+      state_timestamp = xml.search("eveapi/result/stateTimestamp").inner_text
+      online_timestamp = xml.search("eveapi/result/onlineTimestamp").inner_text
+
       h = {'usageFlags' => 0, 'deployFlags' => 0, 'allowCorporationMembers' => 0, 'allowAllianceMembers' => 0, 'claimSovereignty' => 0}
-      h.keys.each {|k| h[k] = xml.search("/eveapi/result/generalSettings/#{k}").inner_text }
+      h.keys.each {|k| h[k] = xml.search("eveapi/result/generalSettings/#{k}").inner_text }
       general_settings = Reve::Classes::StarbaseGeneralSettings.new(h)
-      
+
       h = {'onStandingDrop' => 0, 'onStatusDrop' => 0, 'onAggression' => 0, 'onCorporationWar' => 0}
-      h.keys.each {|k| h[k] = xml.search("/eveapi/result/combatSettings/#{k}") }
+      h.keys.each {|k| h[k] = xml.search("eveapi/result/combatSettings/#{k}").first }
       combat_settings = Reve::Classes::StarbaseCombatSettings.new(h)
-      
+
       fuel = []
-      xml.search("/eveapi/result/rowset[@name='fuel']/row").each do |entry|
+      xml.search("eveapi/result/rowset[@name='fuel']/row").each do |entry|
         fuel << Reve::Classes::StarbaseFuel.new(entry)
       end
-      
+
       res = Hash.new
       { :state => :state, :stateTimestamp => :state_timestamp, :onlineTimestamp => :online_timestamp }.each do |k,v|
-        res[v] = xml.search("/eveapi/result/#{k.to_s}/").first.to_s.strip
+        res[v] = xml.search("eveapi/result/#{k.to_s}").text.strip
       end
-      
+
       Reve::Classes::StarbaseDetails.new res, general_settings, combat_settings, fuel
     end
-    
+
     alias_method  :starbase_fuel, :starbase_details
     
     
@@ -773,7 +775,7 @@ module Reve
       return h if h
       xml = process_query(nil,opts[:url] || @@personal_kills_url,true,args)
       kills = []
-      xml.search("/eveapi/result/rowset/row").each do |e|
+      xml.search("eveapi/result/rowset/row").each do |e|
         victim = Reve::Classes::KillVictim.new(e.search("victim").first) rescue next # cant find victim
         attackers = []
         losses = []
@@ -799,7 +801,7 @@ module Reve
       return h if h
       xml = process_query(nil,opts[:url] || @@corporate_kills_url,true,args)
       kills = []
-      xml.search("/eveapi/result/rowset/row").each do |e|
+      xml.search("eveapi/result/rowset/row").each do |e|
         victim = Reve::Classes::KillVictim.new(e.search("victim").first) rescue next # cant find victim
         attackers = []
         losses = []
@@ -831,29 +833,31 @@ module Reve
       return h if h
       xml = process_query(nil,opts[:url] || @@corporation_sheet_url,true,args)
 
-      h = { 'graphicid' => 0, 'shape1' => 0, 'shape2' => 0, 'shape3' => 0, 'color1' => 0, 'color2' => 0, 'color3' => 0,  }
-      h.keys.each { |k| h[k] = xml.search("//result/logo/" + k + "/").to_s.to_i }
-      corporate_logo = Reve::Classes::CorporateLogo.new h
-      
-      wallet_divisions = xml.search("//result/rowset[@name='walletDivisions']/").collect { |k| k if k.kind_of? Hpricot::Elem } - [ nil ]
-      divisions = xml.search("//result/rowset[@name='divisions']/").collect { |k| k if k.kind_of? Hpricot::Elem } - [ nil ]
+      h = { 'graphicID' => 0, 'shape1' => 0, 'shape2' => 0, 'shape3' => 0, 'color1' => 0, 'color2' => 0, 'color3' => 0,  }
+
+      h.keys.each { |k| h[k] = xml.xpath("//result/logo/" + k).text.to_i }
+      corporate_logo = Reve::Classes::CorporateLogo.new(h)
+
+      wallet_divisions = xml.search("//result/rowset[@name='walletDivisions']/row").collect { |k| k if k.kind_of? Nokogiri::XML::Element } - [ nil ]
+      divisions = xml.search("//result/rowset[@name='divisions']/row").collect { |k| k if k.kind_of? Nokogiri::XML::Element } - [ nil ]
+
       divisions.collect! { |d| Reve::Classes::CorporateDivision.new(d) }
       wallet_divisions.collect! { |w| Reve::Classes::WalletDivision.new(w) }
-      
-      # Map the XML names to our own names and assign them to the temporary 
+
+      # Map the XML names to our own names and assign them to the temporary
       # hash +res+ to pass to Reve::Classes::CorporationSheet#new
       res = Hash.new
-      { :corporationid => :id, :corporationname => :name, :ticker => :ticker, :ceoid => :ceo_id,
-        :ceoname => :ceo_name, :stationid => :station_id, :stationname => :station_name,
-        :description => :description, :url => :url, :allianceid => :alliance_id,
-        :alliancename => :alliance_name, :taxrate => :tax_rate, :membercount => :member_count,
-        :memberlimit => :member_limit, :shares => :shares }.each do |k,v|
-        res[v] = xml.search("//result/#{k.to_s}/").first.to_s.strip
+      { :corporationID => :id, :corporationName => :name, :ticker => :ticker, :ceoID => :ceo_id,
+        :ceoName => :ceo_name, :stationID => :station_id, :stationName => :station_name,
+        :description => :description, :url => :url, :allianceID => :alliance_id,
+        :allianceName => :alliance_name, :taxRate => :tax_rate, :memberCount => :member_count,
+        :memberLimit => :member_limit, :shares => :shares }.each do |k,v|
+        res[v] = xml.search("//result/#{k.to_s}").text.strip
       end
 
-      Reve::Classes::CorporationSheet.new res, divisions, wallet_divisions, corporate_logo  
+      Reve::Classes::CorporationSheet.new(res, divisions, wallet_divisions, corporate_logo)
     end
-    
+
     def corporate_member_security(opts = { :characterid => nil })
       args = postfields(opts)
       h = compute_hash(args.merge(:url => @@corporation_member_security_url))
@@ -861,7 +865,7 @@ module Reve
       xml = process_query(nil,opts[:url] || @@corporation_member_security_url,true,args)
 
       cmc = Reve::Classes::CorporationMemberSecurity.new
-      xml.search("/eveapi/result/rowset[@name=members]/row").each do |member|
+      xml.search("eveapi/result/rowset[@name=members]/row").each do |member|
         mem = Reve::Classes::CorporationMember.new(member)
         cmc.members << mem
         [:roles, :grantableRoles, :rolesAtHQ, :grantableRolesAtHQ, :rolesAtBase, :grantableRolesAtBase, :rolesAtOther, :grantableRolesAtOther].each do |rowset|
@@ -885,9 +889,9 @@ module Reve
       h = compute_hash(args.merge(:url => @@certificate_tree_url))
       return h if h
       xml = process_query(nil,opts[:url] || @@certificate_tree_url,true,args)
-      
+
       tree = Reve::Classes::CertificateTree.new
-      xml.search("/eveapi/result/rowset[@name=categories]/row").each do |category|
+      xml.search("eveapi/result/rowset[@name=categories]/row").each do |category|
         cat = Reve::Classes::CertificateCategory.new(category)
         category.search("rowset[@name=classes]/row").each do |klass|
           kl = Reve::Classes::CertificateClass.new(klass)
@@ -917,27 +921,28 @@ module Reve
       args = postfields(opts)
       h = compute_hash(args.merge(:url => @@character_sheet_url))
       return h if h
-      
-      xml = process_query(nil,opts[:url] || @@character_sheet_url,true,args)
+
+      xml = process_query(nil, opts[:url] || @@character_sheet_url, true, args)
       cs = Reve::Classes::CharacterSheet.new
 
       [ Reve::Classes::IntelligenceEnhancer, Reve::Classes::MemoryEnhancer, Reve::Classes::CharismaEnhancer,
         Reve::Classes::PerceptionEnhancer, Reve::Classes::WillpowerEnhancer
       ].each do |klass|
         xml_attr = klass.to_s.split("::").last.sub("Enhancer",'').downcase + "Bonus"
-        i = klass.new(xml.search("/eveapi/result/attributeEnhancers/#{xml_attr}").search("augmentatorName/").first.to_s,
-                      xml.search("/eveapi/result/attributeEnhancers/#{xml_attr}").search("augmentatorValue/").first.to_s.to_i)
+
+        i = klass.new(xml.search("eveapi/result/attributeEnhancers/#{xml_attr}/augmentatorName").text,
+                      xml.search("eveapi/result/attributeEnhancers/#{xml_attr}/augmentatorValue").text.to_i)
         cs.enhancers << i
       end
 
-      [ 'characterID', 'name', 'race', 'bloodLine', 'ancestry', 'dob', 'gender','corporationName',
-        'corporationID','balance', 'cloneName', 'cloneSkillPoints' 
+      ['characterID', 'name', 'race', 'bloodLine', 'ancestry', 'dob', 'gender','corporationName',
+        'corporationID','balance', 'cloneName', 'cloneSkillPoints'
       ].each do |field|
-        cs.send("#{field.downcase}=",xml.search("/eveapi/result/#{field}/").first.to_s)
+        cs.send("#{field.downcase}=", xml.search("eveapi/result/#{field}").text)
       end
-      
-      [ 'intelligence','memory','charisma','perception','willpower' ].each do |attrib|
-        cs.send("#{attrib}=",xml.search("/eveapi/result/attributes/#{attrib}/").first.to_s.to_i) 
+
+      ['intelligence', 'memory', 'charisma', 'perception', 'willpower'].each do |attrib|
+        cs.send("#{attrib}=", xml.search("eveapi/result/attributes/#{attrib}").text.to_i)
       end
       xml.search("rowset[@name=skills]/row").each do |elem|
         cs.skills << Reve::Classes::Skill.new(elem)
@@ -951,14 +956,14 @@ module Reve
           cs.rsend(["#{role_kind}"], [:push,Reve::Classes::CorporateRole.new(elem)])
         end
       end
-      
+
       xml.search("rowset[@name=corporationTitles]/row").each do |elem|
         cs.corporate_titles << Reve::Classes::CorporateTitle.new(elem)
       end
-      
+
       cs
     end
-    
+
     # Gets the characters notifications. Returns a list of
     # Reve::Classes::Notification
     # Expects:
@@ -1023,8 +1028,8 @@ module Reve
       just_xml = true
       xml = process_query(Reve::Classes::MailMessage, opts[:url] || @@personal_mail_message_bodies_url,just_xml,args)
       results = {}
-      xml.search("//rowset/row").each do |el| 
-        results[el.attributes['messageID']] = el.inner_text
+      xml.search("//rowset/row").each do |el|
+        results[el.attributes['messageID'].value] = el.inner_text
       end
       results
     end

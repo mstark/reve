@@ -1,17 +1,16 @@
 module ProcessingHelpers
-
-# Helper method to handle nested assets
+  # Helper method to handle nested assets
     def recur_through_assets(rows)
       assets = []
       rows.each do |container|
-        unless container.empty?  
-          asset_container = Reve::Classes::AssetContainer.new(container)
-          asset_container.assets = self.recur_through_assets(container.search("/rowset/row"))
-          assets << asset_container 
-        else
+        if container.elements.empty?
           assets << Reve::Classes::Asset.new(container)
+        else
+          asset_container = Reve::Classes::AssetContainer.new(container)
+          asset_container.assets = self.recur_through_assets(container.xpath("rowset/row"))
+          assets << asset_container
         end
-      end 
+      end
       assets
     end
     
@@ -162,10 +161,10 @@ module ProcessingHelpers
     # Raises the proper exception (if there is one), otherwise it returns the
     # XML response.
     def check_exception(xml)
-      x = Hpricot::XML(xml)
+      x = Nokogiri::XML(xml) #{ |config| config.strict }
       begin
         out = x.search("//error") # If this fails then there are some big problems with Hpricot#search ?
-      rescue Exception => e 
+      rescue => e
         $stderr.puts "Fatal error ((#{e.to_s})): Couldn't search the XML document ((#{xml})) for any potential error messages! Is your Hpricot broken?"
         exit 1
       end
@@ -174,26 +173,25 @@ module ProcessingHelpers
       return x if out.size < 1
       code = out.first['code'].to_i
       str  = out.first.inner_html
-      Reve::Exceptions.raise_it(code,str)
+      Reve::Exceptions.raise_it(code, str)
     end
-    
+
     def save_xml(xml)
       path = build_save_filename
       FileUtils.mkdir_p(File.dirname(path))
-      File.open(path,'w') { |f| f.print xml.to_original_html }
+      File.open(path,'w') { |f| f.print xml.to_xml }
     end
-    
+
     def build_save_filename
       method = caller(3).first.match(/\`(.+)'/)[1] # Get the API method that's being called. This is called from save_xml -> process_query -> :real_method
       File.join(@save_path,@keyid.to_s,method,( @cached_until || Time.now.utc).to_i.to_s + '.xml')
     end
 
-	# Returns an array of +klass+
-	def pull_out_top_10_data(xml,klass,kind,field)
-	  xml.search("/eveapi/result/#{kind}/rowset[@name='#{field}']/row").inject([]) do |all,row|
-	    all << klass.new(row)
-	    all
-	  end
-	end
-  
+    # Returns an array of +klass+
+    def pull_out_top_10_data(xml,klass,kind,field)
+      xml.search("eveapi/result/#{kind}/rowset[@name='#{field}']/row").inject([]) do |all,row|
+        all << klass.new(row)
+        all
+      end
+    end
 end

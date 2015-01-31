@@ -7,8 +7,8 @@
     </row>
     <row typeid="649" itemid="543447240" singleton="1" quantity="1" flag="4" locationid="60003913">
       <rowset columns="itemID,typeID,quantity,flag,singleton" name="contents" key="itemID">
-        <row typeid="11489" itemid="782544272" singleton="1" quantity="1" flag="5">
-      </row></rowset>
+        <row typeid="11489" itemid="782544272" singleton="1" quantity="1" flag="5"></row>
+      </rowset>
     </row>
     </rowset>
   </result>

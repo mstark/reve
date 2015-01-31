@@ -1428,11 +1428,8 @@ class TestReve < Test::Unit::TestCase
   # It's useful to know the version and we'll stick it in the user agent
   # now as well.
   def test_reve_version
-    # Path to Reve version is ../VERSION. We rely on File.read here and in the
-    # class so it's kind of crummy.
-    version = File.read(File.join(File.dirname(__FILE__),'../','VERSION')).chomp
-    assert_equal(@api.reve_version, version)
-    assert_equal("Reve v#{version}; http://github.com/lisa/reve", @api.http_user_agent)
+    assert_equal(@api.reve_version, Reve::VERSION)
+    assert_equal("Reve v#{Reve::VERSION}; http://github.com/lisa/reve", @api.http_user_agent)
   end
   
   # no need to test corporate cos they're the same.

@@ -1343,7 +1343,7 @@ class TestReve < Test::Unit::TestCase
     assert_equal 'Maelstrom', info.ship_type_name
     # full
     assert_equal nil, info.last_known_location
-    assert_equal nil, info.acount_balance
+    assert_equal nil, info.account_balance
   end
   
   def test_character_info_full_cleanly
@@ -1354,7 +1354,7 @@ class TestReve < Test::Unit::TestCase
     end
     assert_equal :full, info.type
     assert_equal 'FD-MLJ VII - Moon 2 - Intaki Bank Investment Bank', info.last_known_location
-    assert_equal 9999.29, info.acount_balance
+    assert_equal 9999.29, info.account_balance
   end
   # Can we reassign a URL?
   def test_assignment

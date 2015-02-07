@@ -1634,11 +1634,11 @@ module Reve #:nodoc:
     # * ship_type_name ( String ) -
     # Full Attributes
     # * last_known_location ( String ) -
-    # * acount_balance ( Float )
+    # * account_balance ( Float )
     class CharacterInfo
       attr_reader :id, :name, :race, :bloodline, :corporation_id, :corporation_name, :corporation_date, :alliance_id, :alliance_name, :alliance_date, :security_status
       attr_reader :skillpoints, :skill_training_ends, :ship_name, :ship_type_id, :ship_type_name
-      attr_reader :last_known_location, :acount_balance
+      attr_reader :last_known_location, :account_balance
 
       def initialize(elem) #:nodoc:
         @id = (elem/'characterID').inner_html.to_i
@@ -1652,7 +1652,7 @@ module Reve #:nodoc:
         @corporation_date = Time.parse((elem/'corporationDate').inner_html)
         @alliance_id = (elem/'allianceID').inner_html.to_i
         @alliance_name = (elem/'alliance').inner_html
-        @alliance_date = Time.parse((elem/'alliancenDate').inner_html)
+        @alliance_date = (elem/'alliancenDate').inner_html == "" ? nil : Time.parse((elem/'alliancenDate').inner_html)
         @security_status  = (elem/'securityStatus').inner_html.to_f
         @skillpoints = (elem/'skillPoints').inner_html == "" ? nil : (elem/'skillPoints').inner_html.to_i
         @skill_training_ends = (elem/'nextTrainingEnds').inner_html == "" ? nil : Time.parse((elem/'nextTrainingEnds').inner_html)
@@ -1660,12 +1660,12 @@ module Reve #:nodoc:
         @ship_type_id = (elem/'shipTypeID').inner_html == "" ? nil : (elem/'shipTypeID').inner_html.to_i
         @ship_type_name = (elem/'shipTypeName').inner_html == "" ? nil : (elem/'shipTypeName').inner_html
         @last_known_location = (elem/'lastKnownLocation').inner_html == "" ? nil : (elem/'lastKnownLocation').inner_html
-        @acount_balance = (elem/'accountBalance').inner_html == "" ? nil : (elem/'accountBalance').inner_html.to_f
+        @account_balance = (elem/'accountBalance').inner_html == "" ? nil : (elem/'accountBalance').inner_html.to_f
       end
 
 
       def type
-        if self.acount_balance
+        if self.account_balance
           return :full
         elsif self.skillpoints
           return :limited

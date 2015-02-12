@@ -137,16 +137,16 @@ module ProcessingHelpers
             when Net::HTTPSuccess, Net::HTTPRedirection
               response = res.body
             end
-          rescue Exception
+          rescue => e
             sleep 5
             next
           end
           break if response
         end
         raise Reve::Exceptions::ReveNetworkStatusException.new( (res.body rescue "No Response Body!") ) unless response
-        
+
         xml = response
-      
+
       # here ends test for URI
       elsif source.kind_of?(String)
         xml = File.open(source).read

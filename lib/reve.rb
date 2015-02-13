@@ -6,12 +6,6 @@ require 'reve/version'
 # see the LICENSE file distributed with this package.
 #++
 
-# begin
-#   require 'hpricot'
-# rescue LoadError
-#   require 'rubygems'
-#   require 'hpricot'
-# end
 require 'nokogiri'
 require 'net/https'
 require 'uri'
@@ -20,13 +14,14 @@ require 'digest'
 require 'fileutils'
 require 'time'
 
-$:.unshift(File.dirname(__FILE__)) unless $:.include?(File.dirname(__FILE__)) || $:.include?(File.expand_path(File.dirname(__FILE__)))
+unless $:.include?(File.dirname(__FILE__)) || $:.include?(File.expand_path(File.dirname(__FILE__)))
+  $:.unshift(File.dirname(__FILE__))
+end
 
 require 'reve/exceptions'
 require 'reve/extensions'
 require 'reve/classes'
 require 'reve/processing_helpers'
-
 
 module Reve
   # API Class.

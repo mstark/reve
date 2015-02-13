@@ -8,177 +8,21 @@
 # http://www.crudvision.com/reve-ruby-eve-online-api-library/ to provide
 # feedback
 #++
+
+require_relative 'classes/alliance'
+require_relative 'classes/name'
+require_relative 'classes/corporation'
+require_relative 'classes/eve_faction_war_stat'
+require_relative 'classes/personal_faction_war_particpant'
+require_relative 'classes/corporate_faction_war_particpant'
+require_relative 'classes/factionwide_faction_war_particpant'
+require_relative 'classes/faction_war'
+require_relative 'classes/personal_contact'
+require_relative 'classes/corporate_contact'
+require_relative 'classes/alliance_contact'
+
 module Reve #:nodoc:
   module Classes #:nodoc:
-
-    class Name
-      attr_reader :id, :name
-      def initialize(elem) #:nodoc:
-        @id = elem['id'].to_i
-        @id = elem['name']
-      end
-    end
-
-    # Represents an Alliance as it appears in the Reve::API#alliances call.
-    # Attributes
-    # * name ( String ) - Full Name of the Alliance
-    # * short_name ( String ) - Short name (ticker) of the Alliance
-    # * id ( Fixnum ) - The Alliance's Eve-Online ID
-    # * executor_corp_id ( Fixnum ) - ID of the Corporation that's in charge of the Alliance
-    # * member_count ( Fixnum ) - The number of members that are in the Alliance
-    # * start_date ( Time ) - When the Alliance was formed.
-    # * member_corporations ( [Corporation] ) - Array of the Corporation objects that belong to the Alliance.
-    class Alliance
-      attr_reader :name, :short_name, :id, :executor_corp_id, :member_count, :start_date
-      attr_accessor :member_corporations
-      def initialize(elem) #:nodoc:
-        @name             = elem['name']
-        @short_name       = elem['shortName']
-        @id               = elem['allianceID'].to_i
-        @executor_corp_id = elem['executorCorpID'].to_i
-        @member_count     = elem['memberCount'].to_i
-        @start_date       = elem['startDate'].to_time
-        @member_corporations = []
-      end
-    end
-
-    # Only for use in Alliance class (member_corporations array) from the Reve::API#alliances call
-    # Attributes
-    # * id ( Fixnum ) - ID of the Corporation (use this in the Reve::API#corporation_sheet call)
-    # * start_date ( Time ) - When the Corporation was started?
-    class Corporation
-      attr_reader :id, :start_date
-      def initialize(elem) #:nodoc:
-        @id = elem['corporationID'].to_i
-        @start_date = elem['startDate'].to_time
-      end
-    end
-
-
-
-    class EveFactionWarStat
-      attr_accessor :faction_participants, :faction_wars
-      attr_reader :kills_yesterday, :kills_last_week, :kills_total,
-                  :victory_points_yesterday, :victory_points_last_week,
-                  :victory_points_total
-      def initialize(elem,wars,participants) #:nodoc:
-        @faction_wars = wars
-        @faction_participants = participants
-        @kills_yesterday = elem['killsYesterday'].to_i
-        @kills_last_week = elem['killsLastWeek'].to_i
-        @kills_total = elem['killsTotal'].to_i
-        @victory_points_yesterday = elem['victoryPointsYesterday'].to_i
-        @victory_points_last_week = elem['victoryPointsLastWeek'].to_i
-        @victory_points_total = elem['victoryPointsTotal'].to_i
-      end
-    end
-
-    # Maps a participant in a FactionWar. Can be a:
-    # * PersonalFactionWarParticpant
-    # * CorporateFactionWarParticpant
-    # * FactionwideFactionWarParticpant
-    # Attributes:
-    # * faction_id ( Fixnum ) - ID of the Faction to which the participant belongs
-    # * faction_name ( String ) - Name of the Faction
-    # * kills_yesterday ( Fixnum )
-    # * kills_last_week ( Fixnum )
-    # * kills_total ( Fixnum )
-    # * victory_points_yesterday ( Fixnum )
-    # * victory_points_last_week ( Fixnum )
-    # * victory_points_total ( Fixnum )
-    class FactionWarParticpant
-      attr_reader :faction_id, :faction_name, :enlisted_at, :kills_yesterday,
-                  :kills_last_week, :kills_total, :victory_points_yesterday,
-                  :victory_points_last_week, :victory_points_total
-      def initialize(elem) #:nodoc:
-        @faction_id = elem['factionID'].to_i
-        @faction_name = elem['factionName']
-        @kills_yesterday = elem['killsYesterday'].to_i
-        @kills_last_week = elem['killsLastWeek'].to_i
-        @kills_total = elem['killsTotal'].to_i
-        @victory_points_yesterday = elem['victoryPointsYesterday'].to_i
-        @victory_points_last_week = elem['victoryPointsLastWeek'].to_i
-        @victory_points_total = elem['victoryPointsTotal'].to_i
-      end
-    end
-
-    # Represents a Character's stats as a FactionWarParticpant.
-    # Attributes:
-    # * (See FactionWarParticpant for more)
-    # * current_rank ( Fixnum ) - Current Rank
-    # * highest_rank ( Fixnum ) - Highest Rank
-    # * enlisted_at ( Time ) - When the participant enlisted into the Faction
-    class PersonalFactionWarParticpant < FactionWarParticpant
-      attr_reader :current_rank, :highest_rank
-      def initialize(elem) #:nodoc:
-        super(elem)
-        @current_rank = elem['currentRank'].to_i
-        @highest_rank = elem['highestRank'].to_i
-        @enlisted_at = elem['enlisted'].to_time
-      end
-    end
-
-    # Represents a Corpration's stats as a FactionWarParticpant.
-    # Attributes:
-    # * (See FactionWarParticpant for more)
-    # * pilots ( Fixnum ) - Number of pilots (Characters) in the Corporation
-    # * enlisted_at ( Time ) - When the participant enlisted into the Faction
-    class CorporateFactionWarParticpant < FactionWarParticpant
-      attr_reader :pilots
-      def initialize(elem) #:nodoc:
-        super(elem)
-        @pilots = elem['pilots'].to_i
-        @enlisted_at = elem['enlisted'].to_time
-      end
-    end
-
-    # Represents an entire Faction's stats as a FactionWarParticpant.
-    # Attributes:
-    # * (See FactionWarParticpant for more)
-    # * pilots ( Fixnum ) - Number of pilots (Characters) in the Corporation
-    class FactionwideFactionWarParticpant < FactionWarParticpant
-      attr_reader :pilots, :systems_controlled
-      def initialize(elem) #:nodoc:
-        super(elem)
-        @pilots = elem['pilots'].to_i
-        @systems_controlled = elem['systemsControlled'].to_i
-      end
-    end
-
-    # Represents a single FactionWar between two Factions (e.g., Gallente v. Caldari)
-    # Attributes:
-    # * faction_id ( Fixnum ) - ID of the belligerant Faction
-    # * faction_name ( String ) - Name of the belligerant Faction.
-    # * against_id ( Fixnum ) - ID of the Faction that this war is against.
-    # * against_name ( String ) - Name of the Faction that this war is against.
-    class FactionWar
-      attr_reader :faction_id, :faction_name, :against_id, :against_name
-      def initialize(elem) #:nodoc:
-        @faction_id = elem['factionID'].to_i
-        @faction_name = elem['factionName']
-        @against_id = elem['againstID'].to_i
-        @against_name = elem['againstName']
-      end
-    end
-
-    # Represents a single Contact
-    # Attributes:
-    # * contact_id ( Fixnum ) - ID of the Contact.
-    # * contact_name ( String ) - Name of the belligerant Contact.
-    # * in_watchlist ( Fixnum ) - Whether or not the Contact is in the watchlist.
-    # * standing ( String ) - The standing of the Contact.
-    class PersonalContact
-      attr_reader :contact_id, :contact_name, :in_watchlist, :standing
-      def initialize(elem) #:nodoc:
-        @contact_id = elem['contactID'].to_i
-        @contact_name = elem['contactName']
-        @in_watchlist = elem['inWatchlist'] == 'True' ?  true : false
-        @standing     = elem['standing'].to_i
-      end
-    end
-
-    class CorporateContact < PersonalContact; end
-    class AllianceContact < PersonalContact; end
 
     # The status of a System with regards to a FactionWar. Who controls what
     # and what System is contested

@@ -135,6 +135,8 @@ module Reve
         raise FactionMemberInformationFailure.new(msg)
       when 525
         raise MedalInformationFetchFailure.new(msg)
+      when 532
+        raise MarketOrderNotFound.new(msg)
       when 900
         raise BetaAccessDenied.new(msg)
       when 901
@@ -330,6 +332,9 @@ module Reve
     end
     # 525
     class MedalInformationFetchFailure < ReveError #:nodoc:
+    end
+    # 532
+    class MarketOrderNotFound < ReveError #:nodoc:
     end
 
     # 900

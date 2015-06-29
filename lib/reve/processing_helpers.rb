@@ -109,18 +109,18 @@ module ProcessingHelpers
     # NOTE: To override the lowercase http -> URI rule make the HTTP part uppercase.
     def get_xml(source,opts)
       xml = ""
-      
+
       # Let people still pass Strings starting with http.
       if source =~ /^http/
         source = URI.parse(source)
       end
-      
+
       if source.kind_of?(URI)
         opts.merge({ :version => 2, :url => nil }) #the uri bit will now ignored in format_url_request
         req_args =  format_url_request(opts)
         req = Net::HTTP::Get.new(source.path + req_args)
         req['User-Agent'] = @http_referer_agent || "Reve v#{@reve_version}; http://github.com/lisa/reve"
-        
+
         res = nil
         response = nil
         1.upto(@max_tries) do |try|
@@ -134,16 +134,19 @@ module ProcessingHelpers
             http.read_timeout = @timeout
             res = http.start {|http| http.request(req) }
             case res
-            when Net::HTTPSuccess, Net::HTTPRedirection
+            when Net::HTTPSuccess, Net::HTTPRedirection, Net::HTTPInternalServerError
               response = res.body
             end
-          rescue => e
+          rescue
             sleep 5
             next
           end
           break if response
         end
-        raise Reve::Exceptions::ReveNetworkStatusException.new( (res.body rescue "No Response Body!") ) unless response
+
+        unless response
+          raise Reve::Exceptions::ReveNetworkStatusException.new((res.body rescue "No Response Body!"))
+        end
 
         xml = response
 

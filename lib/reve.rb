@@ -400,9 +400,9 @@ module Reve
     # See also: Reve::Classes::MemberTracking
     def member_tracking(opts = {:characterid => nil})
       args = postfields(opts)
-      h = compute_hash(args.merge(:url => @@member_tracking_url))
+      h = compute_hash(args.merge(url: @@member_tracking_url))
       return h if h
-      process_query(Reve::Classes::MemberTracking,opts[:url] || @@member_tracking_url,false,args)
+      process_query(Reve::Classes::MemberTracking, opts[:url] || @@member_tracking_url, false, args)
     end
     
     

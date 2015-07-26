@@ -348,6 +348,10 @@ module Reve #:nodoc:
         @volume           =elem['volume'].to_i
       end
     end
+
+    # Corporation Contracts
+    class CorporateContracts < Contracts
+    end
     # A Skill has a RequiredAttribute, either a PrimaryAttribute or SecondaryAttribute, which both derrive from this.
     # Attributes
     # * name ( String ) - Name of the required Attribute

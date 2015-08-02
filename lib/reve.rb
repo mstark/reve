@@ -678,7 +678,7 @@ module Reve
       args = postfields(opts)
       h = compute_hash(args.merge(:url => @@corporate_assets_url))
       return h if h
-      xml = process_query(nil,opts[:url] || @@corporate_assets_url, true, args)
+      xml = process_query(nil, opts[:url] || @@corporate_assets_url, true, args)
       self.recur_through_assets(xml.search("eveapi/result/rowset[@name='assets']/row"))
     end
 

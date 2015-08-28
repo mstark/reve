@@ -85,6 +85,7 @@ module Reve
     @@corporate_medals_url            = BASE_URL + '/corp/Medals.xml.aspx'
     @@corp_member_medals_url          = BASE_URL + '/corp/MemberMedals.xml.aspx'
     @@corporate_contacts_url          = BASE_URL + '/corp/ContactList.xml.aspx'
+    @@corporation_contracts_url       = BASE_URL + '/corp/Contracts.xml.aspx'
 
     @@alliances_url                   = BASE_URL + '/eve/AllianceList.xml.aspx'
     @@reftypes_url                    = BASE_URL + '/eve/RefTypes.xml.aspx'
@@ -347,7 +348,7 @@ module Reve
       end
       contacts
     end
-        
+
     # Returns the SkillTree from
     # http://api.eve-online.com/eve/SkillTree.xml.aspx
     # See also: Reve::Classes::SkillTree
@@ -395,9 +396,9 @@ module Reve
     # See also: Reve::Classes::MemberTracking
     def member_tracking(opts = {:characterid => nil})
       args = postfields(opts)
-      h = compute_hash(args.merge(:url => @@member_tracking_url))
+      h = compute_hash(args.merge(url: @@member_tracking_url))
       return h if h
-      process_query(Reve::Classes::MemberTracking,opts[:url] || @@member_tracking_url,false,args)
+      process_query(Reve::Classes::MemberTracking, opts[:url] || @@member_tracking_url, false, args)
     end
     
     
@@ -414,7 +415,7 @@ module Reve
     end
 
     #
-    #gets contracts
+    # gets contracts
     # http://api.eve-online/char/Contracts.xml.aspx
     # * characterid ( Integer | String ) - Get stats for this Character
     # See also: Reve::Classes::Contract
@@ -423,7 +424,18 @@ module Reve
       args = postfields(opts)
       h = compute_hash(args.merge(:url => @@contracts_url))
       return h if h
-      process_query(Reve::Classes::Contracts,opts[:url] || @@contracts_url,false,args)      
+      process_query(Reve::Classes::Contracts, opts[:url] || @@contracts_url, false, args)
+    end
+
+    # gets corporation contracts
+    # http://api.eve-online/corp/Contracts.xml.aspx
+    # * characterid ( Integer | String ) - Get stats for this Character
+    # See also: Reve::Classes::Contract
+    def corporation_contracts(opts = { :characterid => nil })
+      args = postfields(opts)
+      h = compute_hash(args.merge(:url => @@corporation_contracts_url))
+      return h if h
+      process_query(Reve::Classes::CorporateContracts, opts[:url] || @@corporation_contracts_url, false, args)
     end
 
 
@@ -661,7 +673,7 @@ module Reve
       args = postfields(opts)
       h = compute_hash(args.merge(:url => @@corporate_assets_url))
       return h if h
-      xml = process_query(nil,opts[:url] || @@corporate_assets_url, true, args)
+      xml = process_query(nil, opts[:url] || @@corporate_assets_url, true, args)
       self.recur_through_assets(xml.search("eveapi/result/rowset[@name='assets']/row"))
     end
 

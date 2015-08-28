@@ -502,6 +502,7 @@ class TestReve < Test::Unit::TestCase
     assets.select { |ass| ass.instance_of? Reve::Classes::Asset}.each do |asset|
       assert_instance_of(Reve::Classes::Asset, asset)
       assert_not_nil(asset.item_id)
+      assert_not_nil(asset.location_id)
       assert_not_nil(asset.type_id)
       assert_not_nil(asset.quantity)
       assert_not_nil(asset.flag)

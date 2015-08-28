@@ -8,7 +8,6 @@
 # http://www.crudvision.com/reve-ruby-eve-online-api-library/ to provide
 # feedback
 #++
-
 require_relative 'classes/alliance'
 require_relative 'classes/name'
 require_relative 'classes/corporation'

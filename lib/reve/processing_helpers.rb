@@ -1,13 +1,14 @@
 module ProcessingHelpers
   # Helper method to handle nested assets
-    def recur_through_assets(rows)
+    def recur_through_assets(rows, parent = nil)
       assets = []
       rows.each do |container|
         if container.elements.empty?
+          container.set_attribute('locationID', parent['locationID']) if parent
           assets << Reve::Classes::Asset.new(container)
         else
           asset_container = Reve::Classes::AssetContainer.new(container)
-          asset_container.assets = self.recur_through_assets(container.xpath("rowset/row"))
+          asset_container.assets = self.recur_through_assets(container.xpath("rowset/row"), container)
           assets << asset_container
         end
       end
@@ -84,12 +85,12 @@ module ProcessingHelpers
 
       return xml if just_xml
       return [] if xml.nil? # No XML document returned. We should panic.
-      
+
       # Create the array of klass objects to return, assume we start with an empty set from the XML search for rows
       # and build from there.
       xml.search("//rowset/row").inject([]) { |ret,elem| ret << klass.new(elem) }
     end
-    
+
     # Turns a hash into ?var=baz&bam=boo
     def format_url_request(opts)
       req = "?"
@@ -100,8 +101,8 @@ module ProcessingHelpers
       end
       req.chop # We are lazy and append a & to each pair even if it's the last one. FIXME: Don't do this.
     end
-    
-    
+
+
     # Gets the XML from a source.
     # Expects:
     # * source ( String | URI ) - If the +source+ is a String Reve will attempt to load the XML file from the local filesystem by the path specified as +source+. If the +source+ is a URI or is a String starting with http (lowercase) Reve will fetch it from that URI on the web.
@@ -109,18 +110,18 @@ module ProcessingHelpers
     # NOTE: To override the lowercase http -> URI rule make the HTTP part uppercase.
     def get_xml(source,opts)
       xml = ""
-      
+
       # Let people still pass Strings starting with http.
       if source =~ /^http/
         source = URI.parse(source)
       end
-      
+
       if source.kind_of?(URI)
         opts.merge({ :version => 2, :url => nil }) #the uri bit will now ignored in format_url_request
         req_args =  format_url_request(opts)
         req = Net::HTTP::Get.new(source.path + req_args)
         req['User-Agent'] = @http_referer_agent || "Reve v#{@reve_version}; http://github.com/lisa/reve"
-        
+
         res = nil
         response = nil
         1.upto(@max_tries) do |try|
@@ -134,16 +135,19 @@ module ProcessingHelpers
             http.read_timeout = @timeout
             res = http.start {|http| http.request(req) }
             case res
-            when Net::HTTPSuccess, Net::HTTPRedirection
+            when Net::HTTPSuccess, Net::HTTPRedirection, Net::HTTPInternalServerError
               response = res.body
             end
-          rescue => e
+          rescue
             sleep 5
             next
           end
           break if response
         end
-        raise Reve::Exceptions::ReveNetworkStatusException.new( (res.body rescue "No Response Body!") ) unless response
+
+        unless response
+          raise Reve::Exceptions::ReveNetworkStatusException.new((res.body rescue "No Response Body!"))
+        end
 
         xml = response
 

@@ -1,6 +1,4 @@
-require 'test/unit'
-$LOAD_PATH << './lib'
-require 'reve/extensions'
+require 'test_helper'
 
 class CattrReaderTest;cattr_reader :test_reader;end
 class CattrWriterTest;cattr_writer :test_writer;end
@@ -14,8 +12,8 @@ class TestExtensions < Test::Unit::TestCase
   def test_nil_to_time
     assert_nil nil.to_time
   end
-  
-  
+
+
   def test_stringify_keys
     h = { :key => 'value', :tone => 'bar' }
     m = h.stringify_keys
@@ -24,7 +22,7 @@ class TestExtensions < Test::Unit::TestCase
     assert_nil m[:key]
     assert_nil m[:tone]
   end
-  
+
   def test_stringify_keys!
     h = { :key => 'value', :tone => 'bar' }
     h.stringify_keys!
@@ -33,8 +31,8 @@ class TestExtensions < Test::Unit::TestCase
     assert_nil h[:key]
     assert_nil h[:tone]
   end
-  
-  
+
+
   def test_cattr_reader
     assert CattrReaderTest.public_instance_methods.include?('test_reader'.to_sym) || CattrReaderTest.public_instance_methods.include?('test_reader')
   end
@@ -45,7 +43,7 @@ class TestExtensions < Test::Unit::TestCase
     assert CattrReadWriterTest.public_instance_methods.include?('test_both'.to_sym) || CattrReadWriterTest.public_instance_methods.include?('test_both')
     assert CattrReadWriterTest.public_instance_methods.include?('test_both='.to_sym) || CattrReadWriterTest.public_instance_methods.include?('test_both=')
   end
-  
+
   def test_string_to_time_clean
     t = Time.at(1201994389) # Sat Feb 02 23:19:49 UTC 2008
     str = "Sat Feb 02 23:19:49 UTC 2008"
@@ -61,5 +59,5 @@ class TestExtensions < Test::Unit::TestCase
   def test_string_to_i_unclean
     assert_equal 0,"abcd123".to_i
   end
-  
+
 end

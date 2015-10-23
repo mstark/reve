@@ -18,6 +18,14 @@ Rake::RDocTask.new("doc") { |rdoc|
   rdoc.rdoc_files.include('test/**/*')
 }
 
+desc "Run tests"
+Rake::TestTask.new do |t|
+  t.libs << "test"
+  t.test_files = FileList['test/test*.rb']
+  t.verbose = true
+end
+
+
 # if File.exists?('.git')
 #   begin
 #     require 'jeweler'

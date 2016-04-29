@@ -1084,6 +1084,6 @@ module Reve
     end
 
     #protected
-    include ProcessingHelpers
+    include REVE::ProcessingHelpers
   end
 end

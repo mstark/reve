@@ -1,5 +1,6 @@
-module ProcessingHelpers
-  # Helper method to handle nested assets
+module REVE
+  module ProcessingHelpers
+    # Helper method to handle nested assets
     def recur_through_assets(rows, parent = nil)
       assets = []
       rows.each do |container|
@@ -17,7 +18,7 @@ module ProcessingHelpers
     
     # Sets up the post fields for Net::HTTP::Get hash for process_query method.
     # See also format_url_request
-    # TODO: Consider moving this whole thing into process_query to avoid 
+    # TODO: Consider moving this whole thing into process_query to avoid
     # calling this in every method!
     def postfields(opts = {})
       baseargs = { :characterid => @charid }
@@ -39,11 +40,11 @@ module ProcessingHelpers
         n
       end
     end
-    
-    # Creates a hash for some hash of postfields. For each API method pass 
-    # :just_hash => to something to return a hash that can be matched to 
+
+    # Creates a hash for some hash of postfields. For each API method pass
+    # :just_hash => to something to return a hash that can be matched to
     # the last_hash instance method created in process_query.
-    # This method is called in each API method before process_query and if 
+    # This method is called in each API method before process_query and if
     # :just_hash was passed in args then a String will be returned, otherwise
     # nil will be returned
     # TODO: Consider moving this whole thing into process_query before the URI parsing
@@ -120,7 +121,7 @@ module ProcessingHelpers
         opts.merge({ :version => 2, :url => nil }) #the uri bit will now ignored in format_url_request
         req_args =  format_url_request(opts)
         req = Net::HTTP::Get.new(source.path + req_args)
-        req['User-Agent'] = @http_referer_agent || "Reve v#{@reve_version}; http://github.com/lisa/reve"
+        req['User-Agent'] = @http_referer_agent || "Reve v#{@reve_version}; https://github.com/lisa/reve"
 
         res = nil
         response = nil
@@ -157,6 +158,7 @@ module ProcessingHelpers
       else
         raise Reve::Exceptions::ReveNetworkStatusException.new("Don't know how to deal with a #{source.class} XML source. I expect a URI or String")
       end
+
       @last_xml = xml
 
       xml
@@ -198,4 +200,5 @@ module ProcessingHelpers
         all
       end
     end
+  end
 end

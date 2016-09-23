@@ -25,3 +25,9 @@ pkg
 
 Guardfile
 foo_test.rb
+
+/.bundle
+/vendor
+*.gem
+
+.Gemfile.lock
